@@ -1,13 +1,16 @@
 from daemon import Daemon
-import http.client, urllib, hmac, hashlib, re, serial, time
+import http.client, urllib, hmac, hashlib, re, serial, time, subprocess
 
 class Halley(Daemon):
   """Monitors serial port (23b Open Access Board) for authorizations and triggers"""
   
-  version = '0.0.1a'
+  version = '0.0.2'
   serial_path = '/dev/ttyUSB0'
   timeout = 5
   baudrate = 9600
+  host = 'www.maglaboratory.org'
+  use_ssl = True
+  secret_path = '/home/halley/.open-sesame'
   
   
   def get_secret(self):
@@ -27,7 +30,7 @@ class Halley(Daemon):
     # TODO: Check https certificate
     params['time'] = time.time()
     body = urllib.parse.urlencode(params).encode('utf-8')
-    
+
     headers = {"Content-Type": "application/x-www-form-urlencoded",
       "Accept": "text/plain",
       "X-Haldor": Halley.version,
@@ -39,6 +42,7 @@ class Halley(Daemon):
       conn = http.client.HTTPSConnection(Halley.host)
     else:
       conn = http.client.HTTPConnection(Halley.host)
+
     conn.request("POST", "/halley/{0}".format(path), body, headers)
     print("Notified {0}".format(path))
     return conn.getresponse()
@@ -68,7 +72,6 @@ class Halley(Daemon):
     except:
       # TODO: Error handling
       print("Bootup ERROR")
-      pass
 
   def send_output(self, output):
     print("Sending output")
@@ -84,14 +87,14 @@ class Halley(Daemon):
     
     while True:
       line = ser.readline()
-      if output == None
+      if(None == output):
         output = line
-      else
+      else:
         output += line
       
       # A line length of 0 means we reached the timeout, so send output if there is any buffered
-      if output != None and len(len) == 0 and len(output) > 0
-        if self.send_output(output)
+      if(output != None and len(line) == 0 and len(output) > 0):
+        if(self.send_output(output)):
           output = None
       
     
