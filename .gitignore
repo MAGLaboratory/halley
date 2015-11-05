@@ -3,3 +3,4 @@
 .DS_Store
 testrun.sh
 __pycache__
+log/
