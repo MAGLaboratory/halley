@@ -1,5 +1,5 @@
 from daemon import Daemon
-import http.client, urllib, hmac, hashlib, re, serial, time, subprocess, json
+import http.client, urllib, hmac, hashlib, re, serial, time, subprocess
 
 class Halley(Daemon):
   """Monitors serial port (23b Open Access Board) for authorizations and triggers"""
@@ -76,22 +76,8 @@ class Halley(Daemon):
   def send_output(self, output):
     print("Sending output")
     resp = self.notify('output', {'output': output})
-    restxt = resp.read()
-    if(restxt.startswith('{') and restxt.endswith('}')):
-      self.syncAction(restxt)
+    print(resp.read())
     return resp.status == 200
-
-  def syncAction(self, restxt):
-    try:
-      actions = json.loads(restxt)
-      if(actions['keyholders']):
-        self.sync_keyholders(actions['keyholders'])
-    except:
-      print('Sync failed')
-    
-
-  def sync_keyholders(self, keyholders):
-    # TODO
 
   def run(self):
     self.bootup()
@@ -100,14 +86,16 @@ class Halley(Daemon):
     output = None
     
     while True:
-      line = ser.readline()
+      line = ser.readline().strip(b'\x00')
+      
       if(None == output):
         output = line
       else:
         output += line
-      
+
       # A line length of 0 means we reached the timeout, so send output if there is any buffered
-      if(output != None and ((len(line) == 0 and len(output) > 0) or (len(output) > 10000))):
+      if(output != None and len(line) == 0 and len(output) > 0):
+        print(output)
         if(self.send_output(output)):
           output = None
       
